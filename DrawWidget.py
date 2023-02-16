@@ -1,30 +1,65 @@
-from PySide6.QtCore import QPoint
-from PySide6.QtWidgets import QLabel
-from PySide6.QtGui import QMouseEvent, QPainter, QPaintEvent, QPixmap, QColor
+from PySide6.QtCore import QPoint, Slot
+from PySide6.QtWidgets import QLabel, QColorDialog, QFileDialog
+from PySide6.QtGui import QMouseEvent, QPainter, QPaintEvent, QPixmap, QColor, QImage
 
 
 class DrawWidget(QLabel):
+    setColor = Slot()
+    loadFile = Slot()
+    save_file = Slot()
+
     def __init__(self, parent):
         super(DrawWidget, self).__init__(parent)
-        self.pos = QPoint(5, 5)
+
+        self.pos = None
+        self.color = QColor("green")
+        self.pixmap_from_image = None
+        self.painter = QPainter()
+
+    def setColor(self):
+        selected_color = QColorDialog.getColor(self.color, self, "Farbe wählen")
+
+        if selected_color.isValid():
+            self.color = selected_color
 
     def mousePressEvent(self, ev: QMouseEvent) -> None:
         self.pos = ev.pos()
 
-        # Aufgabe 2:
-        # Verbinden Sie das Mouse-Event mit dem Paint-Event,
-        # nutzen sie dafür das self.pos.
+        self.update()
+        print("mouseevent")
 
     def paintEvent(self, ev: QPaintEvent) -> None:
-        painter = QPainter(self)
 
-        painter.drawPoint(5, 20)
-        painter.drawEllipse(50, 25, 20, 20)
+        self.painter.begin(self)
 
-        # Aufgabe 1: https://doc.qt.io/qt-6/qcolordialog.html
-        # Über die Menu-Leiste kann der Benutzer die Farbe bestimmen.
+        if self.pixmap_from_image:
+            self.painter.drawPixmap(QPoint(1, 1), self.pixmap_from_image)
+            print("True")
 
-        painter.setPen(QColor("yellow"))
-        painter.drawRoundedRect(100, 200, 50, 50, 5, 10)
+        if self.pos:
+            print("in pos")
+            self.painter.setPen(self.color)
+            self.painter.drawEllipse(self.pos, 20, 20)
+            self.painter.drawPoint(self.pos)
+            #painter.save()
+            #self.update()
 
-        painter.end()
+        self.painter.end()
+
+    def load_file(self):
+        file_name, _ = QFileDialog.getOpenFileName(self, "Bild auswählen", "Bilder (*.png, *.jpg)")
+        print("loaded")
+        if file_name:
+            self.image = QImage(file_name)
+            self.pixmap_from_image = QPixmap(self.image)
+
+            self.update()
+
+    def save_file(self):
+        file_name, _ = QFileDialog.getSaveFileName(self, "Bild speichern", "./", "Bilder (*.png, *.jpg)")
+
+        if file_name:
+
+            if self.image.save(file_name):
+                print("Success")
+
